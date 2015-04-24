@@ -66,3 +66,49 @@ In the example above the Dockwall Container forwards traffic between the Interne
 2. Dockvpn: 
 
 Dockvpn uses OpenVPN as the SSL VPN software. The approach from above with the two routing table and the route policy cannot be used as traffic has to go through a tun interface and cannot be blindley forwarded between both sides. So routes for both interfaces must be configured in the global routing table. The approach used here is to configure a default route on the right side (typically the side facing to the internet) and use Contrails vRouter to send rfc3442 classless routing information through dhcp for the left side NIC. The routes being sent are the ones which are reachable from the VPN clients connected to the Dockvpn instance. This approach has a very neat side effect: The OpenVPN server sends routes to the OpenVPN client. It either sends a set of specific routes or a default route, which effectively means that either all traffic or only traffic to selected destination is routed through the OpenVPN server. If the desire is to only send specific routes to the client the routes have to be configured in the OpenVPN server configuration. As we don't want to apply manual configuration changes to anything inside the Container it is possible to utilize the dhclient script to push the received routing information into the OpenVPN server configuration. Whenever a VPN client connects the new routing information will be present.
+
+<pre>
++----------------------------------------------------------------------+  
+|                                                                      |  
+|                               Compute Node                           |  
+|                                                                      |  
+|                                 +-----------------------------+      |  
+|                                 |      Dockvpn  Container     |      |  
+|                                 |     +----------------+      |      |  
+|                                 |     |     OpenVPN    |      |      |  
+|        +------+  +------+   d ^ |     +--------+-------+      | + d  |  
+|        | VM22 |  | VM12 |   h | |              |              | | e  |  
+|        | +----++ | +----++  c | |           +--+-+            | | f  |  
+|        | | VM21| | | VM11|  p | |    +------+tun0+-------+    | | a  |  
+|        | |     | | |     |    | | +----+    +----+    +-----+ | | u  |  
+|        +-+     | +-+     |  r | | |eth1|              |eth0 | | | l  |  
+|          +--+--+   ++----+  f | +---+---------------------+-+-+ | t  |  
+|             |       |       c |     |                     |     |    |  
+| +---------------------------3---------------------------------+ | r  |  
+| |           |       |       4 |     |                     |   | | o  |  
+| |        +--+--+ +--+--+    4 |   +-+-------+    +--------+-+ | | u  |  
+| |        |     | |     |    2 +   |         |    |          | | | t  |  
+| |        | VN2 | | VN1 |          | left VN |    | right VN | | v e  |  
+| |        |     | |     |          |         |    |          | |      |  
+| |        +--+--+ +-----+----------++---+----+    +-----+----+ |      |  
+| |           |                      |   |               |      |      |  
+| |           +----------------------+   |   vRouter     |      |      |  
+| |                                      |               |      |      |  
+| +-------------------------------------------------------------+      |  
+|                                        |               |             |  
++----------------------------------------------------------------------+  
+                                         |               |                
+                                  +-----------------------------+         
+                                  |      |               |      |         
+                                  | +----+----+     +----+----+ |         
+                     Corporate NW | |         |     |         | | Internet
+                       <------------+ Corp VRF|     |Inet VRF +---------->
+                                  | |         |     |         | |         
+                                  | +---------+     +---------+ |         
+                                  |                             |         
+                                  |        Router (DCGW)        |         
+                                  |                             |         
+                                  +-----------------------------+         
+</pre>
+
+The Dockvpn Container allows VPN clients to access Virtual Networks 1 & 2 and the Corporate Network.
