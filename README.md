@@ -23,16 +23,16 @@ Ideally at some point in the future the OpenStack Neutron FWaaS plugin is suppor
 |                               Compute Node                           |  
 |                                                                      |  
 |                                 +-----------------------------+      |  
+|                                 |   Dockwall Container        |      |  
 |                                 |                             |      |  
-|                                 |   Dockwall                  |      |  
 |                                 |                             |      |  
 |        +------+  +------+   d + +---------+        +----------+ + d  |  
 |        | VM22 |  | VM12 |   e | |         |        |          | | e  |  
 |        | +----++ | +----++  f | | left RT | route  | right RT | | f  |  
 |        | | VM21| | | VM11|  a | |         | policy |          | | a  |  
 |        | |     | | |     |  u | | +----+ <----------> +-----+ | | u  |  
-|        +-+     | +-+     |  l | | |eth1|  |        |  |eth0 | | | l  |  
-|          +--+--+   ++----+  t | +---+-----+--------+------+-+-+ | t  |  
+|        +-+     | +-+     |  l | | |eth1|  |iptables|  |eth0 | | | l  |  
+|          +--+--+   ++----+  t | +---+---------------------+-+-+ | t  |  
 |             |       |         |     |                     |     |    |  
 | +---------------------------r---------------------------------+ | r  |  
 | |           |       |       o |     |                     |   | | o  |  
@@ -59,9 +59,10 @@ Ideally at some point in the future the OpenStack Neutron FWaaS plugin is suppor
                                   |        Router (DCGW)        |         
                                   |                             |         
                                   +-----------------------------+         
-
 </pre>
+In the example above the Dockwall Container forwards traffic between the Internet, Virtual Networks 1 and 2 and the Corporate Network.
 
-2. Dockvpn:
+
+2. Dockvpn: 
 
 Dockvpn uses OpenVPN as the SSL VPN software. The approach from above with the two routing table and the route policy cannot be used as traffic has to go through a tun interface and cannot be blindley forwarded between both sides. So routes for both interfaces must be configured in the global routing table. The approach used here is to configure a default route on the right side (typically the side facing to the internet) and use Contrails vRouter to send rfc3442 classless routing information through dhcp for the left side NIC. The routes being sent are the ones which are reachable from the VPN clients connected to the Dockvpn instance. This approach has a very neat side effect: The OpenVPN server sends routes to the OpenVPN client. It either sends a set of specific routes or a default route, which effectively means that either all traffic or only traffic to selected destination is routed through the OpenVPN server. If the desire is to only send specific routes to the client the routes have to be configured in the OpenVPN server configuration. As we don't want to apply manual configuration changes to anything inside the Container it is possible to utilize the dhclient script to push the received routing information into the OpenVPN server configuration. Whenever a VPN client connects the new routing information will be present.
