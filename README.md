@@ -17,6 +17,51 @@ For the two examples two different approaches are used:
 Dockwall works with two routing tables inside the container, one for each side. Each routing table uses a default route to the VNs default gateway and a route policy. The route policy basically defines that each packet hitting one side will lookup the routing table of the other side and the visa versa. Because of default route set in that table the traffic will be delivered to the next hop. In between the two NICs the traffic can be processed by kernel functions such as netfilter. Userland tools such as iptables/ufw can easily create L3/L4 based firewall and nat rules. The Dockwall images can be instiated as a SI without any manual configuration and will route traffic between left and right side. Changing firewall/nat rules can be done by either ssh'ing into to the Container, providing an ufw/iptables web ui or by using Docker exec commands on the host.
 Ideally at some point in the future the OpenStack Neutron FWaaS plugin is supported for configuring iptables.
 
+<pre>
++----------------------------------------------------------------------+  
+|                                                                      |  
+|                               Compute Node                           |  
+|                                                                      |  
+|                                 +-----------------------------+      |  
+|                                 |                             |      |  
+|                                 |   Dockwall                  |      |  
+|                                 |                             |      |  
+|        +------+  +------+   d + +---------+        +----------+ + d  |  
+|        | VM22 |  | VM12 |   e | |         |        |          | | e  |  
+|        | +----++ | +----++  f | | left RT | route  | right RT | | f  |  
+|        | | VM21| | | VM11|  a | |         | policy |          | | a  |  
+|        | |     | | |     |  u | | +----+ <----------> +-----+ | | u  |  
+|        +-+     | +-+     |  l | | |eth1|  |        |  |eth0 | | | l  |  
+|          +--+--+   ++----+  t | +---+-----+--------+------+-+-+ | t  |  
+|             |       |         |     |                     |     |    |  
+| +---------------------------r---------------------------------+ | r  |  
+| |           |       |       o |     |                     |   | | o  |  
+| |        +--+--+ +--+--+    u |   +-+-------+    +--------+-+ | | u  |  
+| |        |     | |     |    t |   |         |    |          | | | t  |  
+| |        | VN2 | | VN1 |    e v   | left VN |    | right VN | | v e  |  
+| |        |     | |     |          |         |    |          | |      |  
+| |        +--+--+ +-----+----------++---+----+    +-----+----+ |      |  
+| |           |                      |   |               |      |      |  
+| |           +----------------------+   |   vRouter     |      |      |  
+| |                                      |               |      |      |  
+| +-------------------------------------------------------------+      |  
+|                                        |               |             |  
++----------------------------------------------------------------------+  
+                                         |               |                
+                                  +-----------------------------+         
+                                  |      |               |      |         
+                                  | +----+----+     +----+----+ |         
+                     Corporate NW | |         |     |         | | Internet
+                       <------------+ Corp VRF|     |Inet VRF +---------->
+                                  | |         |     |         | |         
+                                  | +---------+     +---------+ |         
+                                  |                             |         
+                                  |        Router (DCGW)        |         
+                                  |                             |         
+                                  +-----------------------------+         
+
+</pre>
+
 2. Dockvpn:
 
 Dockvpn uses OpenVPN as the SSL VPN software. The approach from above with the two routing table and the route policy cannot be used as traffic has to go through a tun interface and cannot be blindley forwarded between both sides. So routes for both interfaces must be configured in the global routing table. The approach used here is to configure a default route on the right side (typically the side facing to the internet) and use Contrails vRouter to send rfc3442 classless routing information through dhcp for the left side NIC. The routes being sent are the ones which are reachable from the VPN clients connected to the Dockvpn instance. This approach has a very neat side effect: The OpenVPN server sends routes to the OpenVPN client. It either sends a set of specific routes or a default route, which effectively means that either all traffic or only traffic to selected destination is routed through the OpenVPN server. If the desire is to only send specific routes to the client the routes have to be configured in the OpenVPN server configuration. As we don't want to apply manual configuration changes to anything inside the Container it is possible to utilize the dhclient script to push the received routing information into the OpenVPN server configuration. Whenever a VPN client connects the new routing information will be present.
