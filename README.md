@@ -79,7 +79,7 @@ Dockvpn uses OpenVPN as the SSL VPN software. The approach from above with the t
 |        +------+  +------+   h | |     +--------+-------+      | + d  |  
 |        | VM22 |  | VM12 |   c | |              |              | | e  |  
 |        | +----++ | +----++  p | |           +--+-+            | | f  |  
-|        | | VM21| | | VM11|    | |    +------+tun0+-------+    | | a  |  
+|        | | VM21| | | VM11|    | |    ┌------+tun0+-------┐    | | a  |  
 |        | |     | | |     |  r | | +----+    +----+    +-----+ | | u  |  
 |        +-+     | +-+     |  f | | |eth1|              |eth0 | | | l  |  
 |          +--+--+   ++----+  c | +---+---------------------+-+-+ | t  |  
@@ -92,7 +92,7 @@ Dockvpn uses OpenVPN as the SSL VPN software. The approach from above with the t
 | |        |     | |     |          |         |    |          | |      |  
 | |        +--+-++ +----++          +-+--+----+    +-----+----+ |      |  
 | |           | |       |             |  |               |      |      |  
-| |           +-----------------------+  |   ^Router     |      |      |  
+| |           +-----------------------+  |   vRouter     |      |      |  
 | |             |       |                |               |      |      |  
 | +-------------------------------------------------------------+      |  
 |               |       |                |               |             |  
@@ -108,7 +108,7 @@ Dockvpn uses OpenVPN as the SSL VPN software. The approach from above with the t
                                   | |         |     |         | |         
                        <------------+---------+     +---------+---------->
                       Corporate NW|                             | Internet
-                                  |        vRouter (DCGW)       |         
+                                  |        Router (DCGW)       |         
                                   |                             |         
                                   |                             |         
                                   +-----------------------------+         
